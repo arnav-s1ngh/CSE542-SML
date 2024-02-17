@@ -40,6 +40,11 @@ x_train=np.array(x_train)
 print(x_train)
 
 
+for i in range(len(x_test)):
+    x_test[i] = x_test[i].flatten()
+x_test=np.array(x_test)
+
+
 def div_vec(vector,num):
     return [i/num for i in vector]
 
@@ -54,45 +59,52 @@ for i in range(10):
     arr_cov.append(mat)
     arr_mean.append(np.mean(local_x,axis=0))
 
-# discriminants = {}
-# for c in range(10):
-#     cov_inv = np.linalg.inv(arr_cov[c])
-#     mean_diff = x_test - arr_mean[c]
-#     discriminants[c] = -0.5 * np.sum(mean_diff.dot(cov_inv) * mean_diff, axis=1) - 0.5 * np.log(np.linalg.det(arr_cov[c])) + np.log(priors[c])
+arr_mean=np.array(arr_mean)
+arr_cov=np.array(arr_cov)
 
+print(arr_mean)
+print("done")
 
-def qda(x, mean, cov):
-    cov += np.eye(cov.shape[0]) * 0.00000000000001
-    det_cov = np.linalg.det(cov)
-    inv_cov = np.linalg.inv(cov)
-    x_minus_mean = x - mean
-    x_minus_mean = x_minus_mean[np.newaxis, :]
-    exponent_term = np.sum(np.dot(x_minus_mean, inv_cov) * x_minus_mean, axis=1)
-    log_likelihood = -0.5 * exponent_term - 0.5 * np.log(det_cov+0.00000000000000001) - 0.5 * len(mean) * np.log(2 * np.pi)
-    return log_likelihood
-
-
+# Precompute inverse covariance matrices and logarithm of determinants
+inv_covariances = np.linalg.pinv(arr_cov)
+log_determinants = np.log(np.linalg.det(arr_cov) + 0.000001)
+prior=[]
+for i in range(10):
+    su=0
+    for j in y_train:
+        if j==i:
+            su+=1
+    prior.append(su/len(y_train))
+print(prior)
+print(sum(prior))
 # Classify samples in the test set
 predicted_classes = []
 for sample in x_test:
-    probabilities = []
+    probabilities = np.zeros(10)  # Initialize array to store probabilities for each class
     for i in range(10):
-        probability = qda(sample.flatten(), arr_mean[i], arr_cov[i])
-        probabilities.append(probability)
+        diff = sample - arr_mean[i]
+        quadratic_term = -0.5 * np.dot(diff.T, np.dot(inv_covariances[i], diff))
+        probabilities[i] = quadratic_term - 0.5 * log_determinants[i]+np.log(prior[i])
     predicted_class = np.argmax(probabilities)
     predicted_classes.append(predicted_class)
 
 # Evaluate accuracy
 total_samples = len(y_test)
-correct_predictions = np.sum(predicted_classes == y_test)
-accuracy = correct_predictions / total_samples
+correct_instances=0
+for i in range(len(predicted_classes)):
+    if predicted_classes[i]==y_test[i]:
+        correct_instances+=1
+accuracy = correct_instances/ total_samples
 print("Overall Accuracy:", accuracy)
 
 # Calculate class-wise accuracy
 class_accuracy = []
 for i in range(10):
-    class_indices = np.where(y_test == i)[0]
-    correct_predictions = np.sum(predicted_classes[class_indices] == y_test[class_indices])
-    class_accuracy.append(correct_predictions / len(class_indices))
+    class_lst =np.array([w for w in range(len(predicted_classes)) if predicted_classes[w] == i])
+    su=0
+    for j in range(len(class_lst)):
+        if predicted_classes[j]==y_test[j]:
+            su+=1
+    class_accuracy.append(su / len(class_lst))
 
 print("Class-wise Accuracy:", class_accuracy)
