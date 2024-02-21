@@ -26,9 +26,9 @@ for i in range(10):
     #first 5 images in ascending order of indices for each class
     # print(class_indices)
     for j in range(5):
-        sample_image = x_train[class_lst[j]]
+        mnist = x_train[class_lst[j]]
         #gist_earth>>>>>>>grey
-        ax[i, j].imshow(sample_image, cmap='gist_earth')
+        ax[i, j].imshow(mnist, cmap='gist_earth')
         ax[i, j].axis('off')
 plt.tight_layout()
 plt.show()
@@ -64,10 +64,9 @@ arr_cov=np.array(arr_cov)
 
 print(arr_mean)
 print("done")
-
-# Precompute inverse covariance matrices and logarithm of determinants
-inv_covariances = np.linalg.pinv(arr_cov)
-log_determinants = np.log(np.linalg.det(arr_cov) + 0.000001)
+# sir's technique doesn't work, better to add a small const to det, and take pinv
+icovariances = np.linalg.pinv(arr_cov)
+ldeterminants = np.log(np.linalg.det(arr_cov) + 0.000001)
 prior=[]
 for i in range(10):
     su=0
@@ -77,27 +76,17 @@ for i in range(10):
     prior.append(su/len(y_train))
 print(prior)
 print(sum(prior))
-# Classify samples in the test set
 predicted_classes = []
 for sample in x_test:
-    probabilities = np.zeros(10)  # Initialize array to store probabilities for each class
+    probabilities = np.zeros(10)
     for i in range(10):
         diff = sample - arr_mean[i]
-        quadratic_term = -0.5 * np.dot(diff.T, np.dot(inv_covariances[i], diff))
-        probabilities[i] = quadratic_term - 0.5 * log_determinants[i]+np.log(prior[i])
+        quadterm = -0.5 * np.dot(diff.T, np.dot(icovariances[i], diff))
+        probabilities[i] = quadterm - 0.5 * ldeterminants[i]+np.log(prior[i])
     predicted_class = np.argmax(probabilities)
     predicted_classes.append(predicted_class)
 
-# Evaluate accuracy
-total_samples = len(y_test)
-correct_instances=0
-for i in range(len(predicted_classes)):
-    if predicted_classes[i]==y_test[i]:
-        correct_instances+=1
-accuracy = correct_instances/ total_samples
-print("Overall Accuracy:", accuracy)
-
-# Calculate class-wise accuracy
+#finding class accuracies and their weighted avg for total
 class_accuracy = []
 for i in range(10):
     class_lst =np.array([w for w in range(len(predicted_classes)) if predicted_classes[w] == i])
@@ -108,3 +97,4 @@ for i in range(10):
     class_accuracy.append(su / len(class_lst))
 
 print("Class-wise Accuracy:", class_accuracy)
+print("Overall Accuracy:", sum(class_accuracy[i]*prior[i] for i in range(10)))
