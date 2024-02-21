@@ -97,4 +97,12 @@ for i in range(10):
     class_accuracy.append(su / len(class_lst))
 
 print("Class-wise Accuracy:", class_accuracy)
-print("Overall Accuracy:", sum(class_accuracy[i]*prior[i] for i in range(10)))
+pst=[]
+for i in range(10):
+    su=0
+    for j in y_test:
+        if j==i:
+            su+=1
+    pst.append(su/len(y_test))
+print(pst)
+print("Overall Accuracy:", sum(class_accuracy[i]*pst[i] for i in range(10)))
