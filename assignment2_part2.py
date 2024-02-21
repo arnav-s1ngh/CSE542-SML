@@ -39,41 +39,36 @@ for i in range(1):
         Y_test.append(i)
 X_test=np.array(X_test)
 X_test=X_test.T
-X_test_centered=X_test-np.mean(X_test,keepdims=True,axis=1)
+X_test_mr=X_test-np.mean(X_test,keepdims=True,axis=1)
 X=np.array(X)
 X=X.T
-X_centered = X - np.mean(X,keepdims=True, axis=1)
+X_mr = X - np.mean(X,keepdims=True, axis=1)
 later=np.mean(X,keepdims=True, axis=1)
-print(X_centered.shape)
-S = np.dot(X_centered,X_centered.T)/999
+print(X_mr.shape)
+S = np.dot(X_mr,X_mr.T)/999
 print(S.shape)
 eigenvalues, eigenvectors = np.linalg.eigh(S)
-eig_pairs = [(np.abs(eigenvalues[i]), eigenvectors[i,:]) for i in range(len(eigenvalues))]
-eig_pairs.sort(key=lambda x: x[0], reverse=True)
-U = np.array([x[1] for x in eig_pairs])
-
-Y = np.dot(U.T, X_centered)
-
-X_reconstructed = np.dot(U, Y)
-
-MSE = np.mean((X - X_reconstructed) ** 2,axis=1)
+spair = [((eigenvalues[i]), eigenvectors[i,:]) for i in range(len(eigenvalues))]
+spair.sort(key=lambda x: x[0], reverse=True)
+U = np.array([x[1] for x in spair])
+Y = np.dot(U.T, X_mr)
+X_recon = np.dot(U, Y)
+MSE = np.mean((X - X_recon) ** 2,axis=1)
 print(MSE)
 
-for p in [500,600,700,800,900,1000]:
+for p in [5,10,20,500,600,700,800,900,1000]:
     Up = U[:, :p]
-    Yp = np.dot(Up.T, X_centered)  # Reduced feature matrix
-    X_reconstructed=np.dot(Up, Yp)
-    image = np.reshape((X_reconstructed+later)[:, 1], (28, 28))
-    plt.imshow(image, cmap='gray')
-    plt.title(f'{p})')
+    Yp = np.dot(Up.T, X_mr)
+    X_recon=np.dot(Up, Yp)
+    image = np.reshape((X_recon+later)[:, 1], (28, 28))
+    plt.imshow(image, cmap='grey')
+    plt.title(f'{p}')
     plt.show()
-
-
 
 for p in [10000000]:
     Up = U[:, :p]
-    Yp_train=np.dot(Up.T, X_centered)
-    Yp_test = np.dot(Up.T, X_test_centered)  
+    Yp_train=np.dot(Up.T, X_mr)
+    Yp_test = np.dot(Up.T, X_test_mr)
     print("yp",Yp_test.shape)
     arr_mean = []
     arr_cov = []
@@ -85,8 +80,8 @@ for p in [10000000]:
         arr_mean.append(np.mean(local_x, axis=0))
     arr_mean = np.array(arr_mean)
     arr_cov = np.array(arr_cov)
-    inv_covariances = np.linalg.pinv(arr_cov)
-    log_determinants = np.log(np.linalg.det(arr_cov) + 0.000001)
+    icovariances = np.linalg.pinv(arr_cov)
+    ldeterminants = np.log(np.linalg.det(arr_cov) + 0.000001)
     prior = []
     for i in range(10):
         su = 0
@@ -95,12 +90,12 @@ for p in [10000000]:
                 su += 1
         prior.append(su / len(Y_train))
     predicted_classes = []
-    for sample in Yp_test.T:
-        probabilities = np.zeros(10)  
+    for b in Yp_test.T:
+        probabilities = np.zeros(10)
         for i in range(10):
-            diff = sample - arr_mean[i]
-            quadratic_term = -0.5 * np.dot(diff.T, np.dot(inv_covariances[i], diff))
-            probabilities[i] = quadratic_term - 0.5 * log_determinants[i] + np.log(prior[i])
+            diff = b - arr_mean[i]
+            quadratic_term = -0.5 * np.dot(diff.T, np.dot(icovariances[i], diff))
+            probabilities[i] = quadratic_term - 0.5 * ldeterminants[i] + np.log(prior[i])
         predicted_class = np.argmax(probabilities)
         predicted_classes.append(predicted_class)
     class_accuracy = []
@@ -110,6 +105,6 @@ for p in [10000000]:
         for j in range(len(class_lst)):
             if predicted_classes[j] == y_test[j]:
                 su += 1
-        class_accuracy.append(su / ((len(class_lst))+1))
-    print("Class-wise Accuracy:", class_accuracy)
+        class_accuracy.append(su/((len(class_lst))+1))
+    print("Class wise Accuracy:", class_accuracy)
     print("Total Accuracy:",sum(class_accuracy)/len(class_accuracy))
