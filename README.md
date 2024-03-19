@@ -4,7 +4,7 @@ Question-1
 
 Steps:-
 
-Downloaded the dataset, Visualised 5 members from each class using matplotlib, vectorised them using .flatten, obtained their mean and covariance matrices using numpy, computed the discriminant, found the total and class-wise accuracy
+Downloaded the dataset, Visualised 5 members from each class using matplotlib, vectorised them using .flatten, obtained their mean and covariance matrices using numpy, computed the discriminant, found the total and class-wise accuracy.
 
 Question-2
 
