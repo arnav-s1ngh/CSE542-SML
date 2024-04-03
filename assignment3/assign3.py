@@ -109,15 +109,15 @@ accuracy=np.mean(preds==y_test)
 # classaccuracy=[np.mean((preds==cl)&(y_test==cl)) for cl in [0,1,2]]
 print(f"Overall accuracy is - {accuracy}")
 print(f"Classwise accuracy is- {class_wise_accuracy(preds,y_test)}")
-preds = np.zeros((len(x_test),5),dtype=int)
+preds2=np.zeros((len(x_test),5),dtype=int)
 for i in range(5):
    dex=np.random.choice(len(x_train),len(x_train),replace=True)
    bax=x_train[dex]
    bay=y_train[dex]
    tree2=dectree(mdepth=3)
    tree2.fit(bax,bay)
-   preds[:,i]=tree2.predict(x_test)
-bagged_preds=np.apply_along_axis(mostcom,axis=1,arr=preds)
-accuracy=np.mean(bagged_preds==y_test)
+   preds2[:,i]=tree2.predict(x_test)
+bpreds=np.apply_along_axis(mostcom,axis=1,arr=preds2)
+accuracy=np.mean(bpreds==y_test)
 print(f"Bagging overall- {accuracy}")
-print(f"Bagging classwise- {class_wise_accuracy(bagged_preds,y_test)}")
+print(f"Bagging classwise- {class_wise_accuracy(bpreds,y_test)}")
