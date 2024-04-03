@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+np.random.seed(16)
 data=np.load('mnist.npz')
 lst=(data.files)
 x_test=list(data[lst[0]])
@@ -38,10 +41,12 @@ class dectree:
    def __init__(self,mdepth=None):
        self.mdepth=mdepth
        self.tree=None
+    #using gini for measuring impurity
    def gini(self, y):
        worthless,counts=np.unique(y, return_counts=True)
        mean_cnt=counts/len(y)
        return 1-np.sum(mean_cnt**2)
+   #chooses pnt which has least impurity acc. gini
    def split(self,x,y,depth=0):
        if len(np.unique(y))==1 or (self.mdepth is not None and depth>=self.mdepth):
            return None,np.bincount(y).argmax()
@@ -68,11 +73,12 @@ class dectree:
        ltree=self.split(x[leftbranch],y[leftbranch],depth+1)
        rtree=self.split(x[rightbranch],y[rightbranch],depth+1)
        return (supsplit[0],supsplit[1],ltree,rtree),None
-   def fit(self,X,y):
-       self.tree=self.split(X,y)
-   def predict(self,X):
-       preds=np.zeros(len(X))
-       for i,x in enumerate(X):
+   def fit(self,x,y):
+       self.tree=self.split(x,y)
+    #predicts labels for x_test
+   def predict(self,x):
+       preds=np.zeros(len(x))
+       for i,x in enumerate(x):
            node=self.tree
            while node[1] is None:
                dex,split_val,ltree,rtree=node[0]
@@ -82,31 +88,36 @@ class dectree:
                    node=rtree
            preds[i]=node[1]
        return preds
-tree=dectree(mdepth=2)
-tree.fit(x_train,y_train)
+def class_wise_accuracy(preds,y_true):
+    accuracies=[]
+    for c in np.unique(y_true):
+        mask=(y_true== c)
+        class_preds=preds[mask]
+        class_true=y_true[mask]
+        accuracy=(np.mean(class_preds== class_true))
+        accuracies.append(accuracy)
+    return accuracies
+def mostcom(x):
+    unique,cnt=np.unique(x,return_counts=True)
+    mcind=np.argmax(cnt)
+    return unique[mcind]
+tree1=dectree(mdepth=2)
+tree1.fit(x_train,y_train)
 # finding the classwise accuracy using class list attribution
-preds=tree.predict(x_test)
+preds=tree1.predict(x_test)
 accuracy=np.mean(preds==y_test)
-classaccuracy=[np.mean((preds==cl)&(y_test==cl)) for cl in [0,1,2]]
+# classaccuracy=[np.mean((preds==cl)&(y_test==cl)) for cl in [0,1,2]]
 print(f"Overall accuracy is - {accuracy}")
-print(f"Classwise accuracy is- {classaccuracy}")
-
-# from collections import Counter
-# num_trees = 5
-# preds = np.zeros((len(x_test), num_trees), dtype=int)
-#
-# for i in range(num_trees):
-#    dex = np.random.choice(len(x_train), len(x_train), replace=True)
-#    X_bag = x_train[dex]
-#    y_bag = y_train[dex]
-#    tree = dectree(mdepth=3)
-#    tree.fit(X_bag, y_bag)
-#    preds[:, i] = tree.predict(x_test)
-#
-# bagged_preds = np.apply_along_axis(lambda x: Counter(x).most_common(1)[0][0], axis=1, arr=preds)
-# accuracy = np.mean(bagged_preds == y_test)
-# classaccuracy = [np.mean((bagged_preds == c) & (y_test == c)) for c in [0, 1, 2]]
-# print(f"\nBagging overall accuracy: {accuracy:.3f}")
-# print(f"Bagging class-wise accuracy: {classaccuracy}")
-
-
+print(f"Classwise accuracy is- {class_wise_accuracy(preds,y_test)}")
+preds = np.zeros((len(x_test),5),dtype=int)
+for i in range(5):
+   dex=np.random.choice(len(x_train),len(x_train),replace=True)
+   bax=x_train[dex]
+   bay=y_train[dex]
+   tree2=dectree(mdepth=3)
+   tree2.fit(bax,bay)
+   preds[:,i]=tree2.predict(x_test)
+bagged_preds=np.apply_along_axis(mostcom,axis=1,arr=preds)
+accuracy=np.mean(bagged_preds==y_test)
+print(f"Bagging overall- {accuracy}")
+print(f"Bagging classwise- {class_wise_accuracy(bagged_preds,y_test)}")
