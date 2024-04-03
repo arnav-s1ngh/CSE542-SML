@@ -99,8 +99,12 @@ def class_wise_accuracy(preds,y_true):
     return accuracies
 def mostcom(x):
     unique,cnt=np.unique(x,return_counts=True)
-    mcind=np.argmax(cnt)
-    return unique[mcind]
+    maxcnt=np.max(cnt)
+    mcind = np.argmax(cnt)
+    if maxcnt<3:
+        return -1
+    else:
+        return unique[mcind]
 tree1=dectree(mdepth=2)
 tree1.fit(x_train,y_train)
 # finding the classwise accuracy using class list attribution
