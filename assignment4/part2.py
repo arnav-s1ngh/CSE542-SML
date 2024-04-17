@@ -57,6 +57,7 @@ class decstump:
         self.threshold = None
         self.alpha = None
         self.fidx = None
+        #"The splits to be evaluated will be midpoint of two consecutive unique values."
     def split(self,x,y):
         nsamps,nfeats=x.shape
         minssr=float('inf')
@@ -70,6 +71,7 @@ class decstump:
             for threshold in split_points:
                 left=y[x_column<threshold]
                 right=y[x_column>=threshold]
+                #minimising ssr
                 ssr=np.sum((left-np.mean(left))**2)+np.sum((right-np.mean(right))**2)
                 if ssr<minssr:
                     minssr=ssr
