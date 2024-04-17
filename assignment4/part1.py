@@ -149,7 +149,6 @@ class adaboost:
         plt.title("AdaBoost M1 Val Accuracy")
         plt.grid()
         plt.show()
-# Usage
 model=adaboost(300)
 model.fit(x_train_new, y_train_new, x_val, y_val)
 model.plotacc()
