@@ -98,7 +98,7 @@ for t in range(numiter):
     residuals-=stump.alpha*stump.predict(x_train_new)
     valpred=np.sum([tree.alpha*tree.predict(x_val) for tree in trees],axis=0)
     valmse=np.mean((y_val-valpred)**2)
-    print(f"Iteration {t}, Validation MSE: {valmse}")
+    print(f"Iteration No. {t}, Validation MSE: {valmse}")
 test_pred=np.sum([tree.alpha*tree.predict(x_test) for tree in trees],axis=0)
 test_mse = np.mean((y_test-test_pred)**2)
 print(f"Test MSE: {test_mse}")
