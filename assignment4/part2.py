@@ -98,7 +98,7 @@ for t in range(numiter):
     valmse=np.mean((y_val-valpred)**2)
     print(f"Iteration {t}, Validation MSE: {valmse}")
 test_pred=np.sum([tree.alpha*tree.predict(x_test) for tree in trees],axis=0)
-test_mse = np.mean((y_test-test_pred) ** 2)
+test_mse = np.mean((y_test-test_pred)**2)
 print(f"Test MSE: {test_mse}")
 plt.figure(figsize=(10, 6))
 valpreds = [np.sum([tree.alpha * tree.predict(x_val) for tree in trees[:i+1]],axis=0) for i in range(numiter)]
