@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 np.random.seed(16)
 data=np.load('mnist.npz')
@@ -24,7 +23,6 @@ for i in range(len(x_test)):
 x_test=np.array(x_test)
 y_test=np.array(y_test)
 y_train=np.array(y_train)
-
 #selcting classes-> 0 and 1
 x_train=x_train[np.isin(y_train,[-1,1])]
 y_train=y_train[np.isin(y_train,[-1,1])]
@@ -51,120 +49,100 @@ def pca(X,compnum):
     U=evec[:,range(compnum)]
     P=X_std.dot(U)
     return P
-x_train=pca(x_train,5)
+x_train_new=pca(x_train_new,5)
 x_test=pca(x_test,5)
+x_val=pca(x_val,5)
 
 class DecisionStump:
     def __init__(self):
-        self.split_dim = None
-        self.split_val = None
-        self.left = None
-        self.right = None
+        self.polarity = 1
+        self.feature_idx = None
+        self.threshold = None
         self.alpha = None
 
-    def fit(self, x, y, sample_weights):
-        num_features = x.shape[1]
-        best_error = np.inf
-
-        for dim in range(num_features):
-            unique_values = np.unique(x[:, dim])
-            unique_splits = (unique_values[:-1] + unique_values[1:]) / 2
-
-            for split_val in unique_splits:
-                predictions = np.ones_like(y)
-                predictions[x[:, dim] < split_val] = -1
-                error = np.sum(sample_weights[y != predictions])
-
-                if error < best_error:
-                    best_error = error
-                    self.split_dim = dim
-                    self.split_val = split_val
-                    self.left = predictions.copy()
-                    self.right = -predictions.copy()
-
-    def predict(self, x):
-        predictions = np.ones(len(x))
-        predictions[x[:, self.split_dim] < self.split_val] = -1
+    def predict(self, X):
+        n_samples = X.shape[0]
+        X_column = X[:, self.feature_idx]
+        predictions = np.ones(n_samples)
+        if self.polarity == 1:
+            predictions[X_column < self.threshold] = -1
+        else:
+            predictions[X_column >= self.threshold] = -1
         return predictions
 
-class DecisionStump:
-    def __init__(self):
-        self.split_dim = None
-        self.split_val = None
-        self.left = None
-        self.right = None
-        self.alpha = None
+class Adaboost:
+    def __init__(self, n_clf=300):
+        self.n_clf = n_clf
+        self.clfs = []
+        self.val_accuracies = []
 
-    def fit(self, x, y, sample_weights):
-        num_features = x.shape[1]
-        best_error = np.inf
+    def fit(self, X_train, y_train, X_val, y_val):
+        n_samples, n_features = X_train.shape
+        self.weights = np.ones(n_samples) / n_samples
 
-        for dim in range(num_features):
-            if dim < 5:  # Only consider the first 5 dimensions
-                unique_values = np.unique(x[:, dim])
-                unique_splits = (unique_values[:-1] + unique_values[1:]) / 2
+        for _ in range(self.n_clf):
+            clf = DecisionStump()
+            min_error = float('inf')
 
-                for split_val in unique_splits:
-                    predictions = np.ones_like(y)
-                    predictions[x[:, dim] < split_val] = -1
-                    error = np.sum(sample_weights[y != predictions])
+            for feature_i in range(n_features):
+                X_column = X_train[:, feature_i]
+                thresholds = np.unique(X_column)
+                for threshold in thresholds:
+                    # Predict with polarity 1
+                    p = 1
+                    predictions = np.ones(n_samples)
+                    predictions[X_column < threshold] = -1
 
-                    if error < best_error:
-                        best_error = error
-                        self.split_dim = dim
-                        self.split_val = split_val
-                        self.left = predictions.copy()
-                        self.right = -predictions.copy()
+                    # Error = sum of weights of misclassified samples
+                    misclassified = self.weights[y_train != predictions]
+                    error = np.sum(misclassified)
+                    if error > 0.5:
+                        error = 1 - error
+                        p = -1
 
-    def predict(self, x):
-        predictions = np.ones(len(x))
-        if self.split_dim is not None and self.split_val is not None:
-            predictions[x[:, self.split_dim] < self.split_val] = -1
-        return predictions
-def boosting(x_train, y_train, x_val, y_val, num_iterations):
-    num_samples = len(y_train)
-    sample_weights = np.ones(num_samples) / num_samples
-    classifiers = []
-    val_accuracies = []
+                    # Store the best configuration
+                    if error < min_error:
+                        clf.polarity = p
+                        clf.threshold = threshold
+                        clf.feature_idx = feature_i
+                        min_error = error
 
-    for i in range(num_iterations):
-        stump = DecisionStump()
-        stump.fit(x_train, y_train, sample_weights)
-        predictions = stump.predict(x_train)
+            # Calculate alpha
+            EPS = 1e-10
+            clf.alpha = 0.5 * np.log((1.0 - min_error + EPS) / (min_error + EPS))
 
-        weighted_error = np.sum(sample_weights[y_train != predictions])
-        alpha_i = 0.5 * np.log((1 - weighted_error) / weighted_error)
+            # Calculate predictions and update weights
+            predictions = clf.predict(X_train)
+            self.weights *= np.exp(-clf.alpha * y_train * predictions)
+            self.weights /= np.sum(self.weights)
 
-        sample_weights *= np.exp(-y_train * predictions * alpha_i)
-        sample_weights /= np.sum(sample_weights)
+            val_preds = self.predict(X_val)
+            val_accuracy = np.mean(val_preds == y_val)
+            self.val_accuracies.append(val_accuracy)
+            print(f"Iteration {len(self.clfs) + 1}: Val Accuracy = {val_accuracy:.4f}")
 
-        classifiers.append((stump, alpha_i))
+            self.clfs.append(clf)
 
-        # Evaluate on validation set
-        val_predictions = np.sum([alpha * clf.predict(x_val) for clf, alpha in classifiers], axis=0)
-        val_accuracy = np.mean(np.sign(val_predictions) == y_val)
-        val_accuracies.append(val_accuracy)
+    def predict(self, X):
+        clf_preds = [clf.alpha * clf.predict(X) for clf in self.clfs]
+        y_pred = np.sum(clf_preds, axis=0)
+        y_pred = np.sign(y_pred)
+        return y_pred
 
-    return classifiers, val_accuracies
-# Running boosting algorithm
-num_iterations = 300
-classifiers, val_accuracies = boosting(x_train_new, y_train_new, x_val, y_val, num_iterations)
+    def plot_accuracy(self):
+        plt.figure(figsize=(8, 6))
+        plt.plot(range(1, self.n_clf + 1), self.val_accuracies)
+        plt.xlabel("Number of Estimators")
+        plt.ylabel("Validation Accuracy")
+        plt.title("AdaBoost Validation Accuracy")
+        plt.grid()
+        plt.show()
 
-# Plot validation accuracies vs number of trees
-plt.plot(range(1, num_iterations + 1), val_accuracies)
-plt.xlabel('Number of Trees')
-plt.ylabel('Validation Accuracy')
-plt.title('Validation Accuracy vs Number of Trees')
-plt.show()
-
-# Select the best performing classifier
-best_idx = np.argmax(val_accuracies)
-best_classifier, _ = classifiers[best_idx]
-
-# Evaluate the selected classifier on the test set
-test_predictions = np.zeros(len(x_test))
-for clf, alpha in classifiers[:best_idx + 1]:
-    test_predictions += alpha * clf.predict(x_test)
-test_accuracy = np.mean(np.sign(test_predictions) == y_test)
-print(val_accuracies)
-print("Test Accuracy:", test_accuracy)
+# Usage
+n_clf = 300
+model = Adaboost(n_clf)
+model.fit(x_train_new, y_train_new, x_val, y_val)
+model.plot_accuracy()
+test_preds = model.predict(x_test)
+test_accuracy = np.mean(test_preds == y_test)
+print(f"Test Accuracy: {test_accuracy:.4f}")
