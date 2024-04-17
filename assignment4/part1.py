@@ -60,6 +60,41 @@ class DecisionStump:
         self.threshold = None
         self.alpha = None
 
+    def split(self, X, y, w):
+        n_samples, n_features = X.shape
+        min_error = float('inf')
+        best_feature = None
+        best_threshold = None
+
+        for feature_i in range(n_features):
+            X_column = X[:, feature_i]
+            thresholds = np.unique(X_column)
+            thresholds.sort()
+            split_points = [(thresholds[i] + thresholds[i-1]) / 2 for i in range(1, len(thresholds))]
+
+            for threshold in split_points:
+                # Predict with polarity 1
+                p = 1
+                predictions = np.ones(n_samples)
+                predictions[X_column < threshold] = -1
+
+                # Compute weighted error
+                misclassified = w[y != predictions]
+                error = np.sum(misclassified)
+                if error > 0.5:
+                    error = 1 - error
+                    p = -1
+
+                if error < min_error:
+                    min_error = error
+                    best_feature = feature_i
+                    best_threshold = threshold
+                    self.polarity = p
+
+        self.feature_idx = best_feature
+        self.threshold = best_threshold
+        return min_error
+
     def predict(self, X):
         n_samples = X.shape[0]
         X_column = X[:, self.feature_idx]
