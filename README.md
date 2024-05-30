@@ -1,11 +1,16 @@
 # SML
+# Libraries for Assignments: Numpy, MatplotLib, Pandas, Seaborn
+Assignment-1
+Solved problems related to error probabilities and decision boundaries in classification u, computing an unbiased covariance matrices, and deriving likelihood ratio tests.
 
-Question-1
+Assignment-2
+Implemented PCA and QDA from scratch on the MNIST dataset
 
-Steps:-
+Assignment-3
+Performed PCA on selected MNIST classes, built a decision tree with 3 terminal nodes using Gini index, classified test samples, and improved results using bagging. All from scratch.
 
-Downloaded the dataset, Visualised 5 members from each class using matplotlib, vectorised them using .flatten, obtained their mean and covariance matrices using numpy, computed the discriminant, found the total and class-wise accuracy.
+Assignment-4
+Implemented AdaBoost.M1 on MNIST classes using PCA-reduced data, trained 300 decision stumps, tracked validation accuracy, and reported test accuracy; then, applied gradient boosting with absolute loss for regression, tracked MSE on validation set, and reporte test MSE. All from scratch
 
-Question-2
-
-Preprocessing repeated, took centered X after transposing to proper form. found cov_matrix, eigenvalues and eigenvectors, sorteed using lambda func, created u, found Y, got reconfigured matrix. plotted for different values of p. applied qda on Yp against Y, obtained rather poor results, attributable to the absence of U in the product (perhaps)
+Project
+Classified Dialogues to Characters in Seinfeld and The Office using a combination of NLP techniques (TF-IDF, NLTK Tokenisation), and compared the performances of MNB,MLP,RF,LR,VC and ANN based classifiers on the same, with a max classification accuracy of 74% on the latter, on The Office dataset.
